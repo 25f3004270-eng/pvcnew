@@ -1,0 +1,560 @@
+{% extends "base.html" %}
+{% block title %}PVC Result{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <!-- HEADER / SUMMARY -->
+  <div class="alert alert-success">
+    <h4 class="mb-1">PVC Calculation</h4>
+    <p class="mb-0">
+      <strong>User:</strong> {{ current_user.username }} |
+      <strong>Item:</strong> {{ item }}{% if item_obj and item_obj.code %} ({{ item_obj.code }}){% endif %} |
+      <strong>Calc ID:</strong> #{{ calc_id }}
+    </p>
+    {% if item_obj and item_obj.description %}
+    <p class="mb-0 mt-1">
+      <small class="text-muted">
+        {{ item_obj.description }}
+      </small>
+    </p>
+    {% endif %}
+  </div>
+
+  <!-- TOP SUMMARY CARDS -->
+  <div class="row text-center mb-4">
+    <!-- Final payable -->
+    <div class="col-md-3 mb-2">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <h4>₹{{ "%.2f"|format(result.data.fairprice|default(0)) }}</h4>
+          <small><strong>Final Payable (Selected Scenario)</strong></small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scenario-wise PVC (gross, before LD) -->
+    <div class="col-md-3 mb-2">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <h5>
+            {% if result.data.selectedscenario == 'A2' %}
+              ₹{{ "%.2f"|format(result.data.pvcactual|default(0)) }}
+            {% elif result.data.selectedscenario == 'B2' %}
+              ₹{{ "%.2f"|format(result.data.pvccontractual|default(0)) }}
+            {% elif result.data.selectedscenario == 'C1' %}
+              ₹{{ "%.2f"|format(result.data.lower_actual|default(0)) }}
+            {% elif result.data.selectedscenario == 'D1' %}
+              ₹{{ "%.2f"|format(result.data.lower_contractual|default(0)) }}
+            {% else %}
+              ₹0.00
+            {% endif %}
+          </h5>
+          <small>
+            {% if result.data.selectedscenario == 'A2' %}
+              Actual PVC (A2)
+            {% elif result.data.selectedscenario == 'B2' %}
+              Contractual PVC (B2)
+            {% elif result.data.selectedscenario == 'C1' %}
+              Lower Actual PVC (C1)
+            {% elif result.data.selectedscenario == 'D1' %}
+              Lower Contractual PVC (D1)
+            {% else %}
+              PVC Amount
+            {% endif %}
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <!-- LD card -->
+    <div class="col-md-3 mb-2">
+      <div class="card bg-danger text-white">
+        <div class="card-body">
+          <h5>
+            {% if not result.data.ld_applicable %}
+              ₹0.00
+            {% elif result.data.selectedscenario == 'A2' %}
+              ₹{{ "%.2f"|format(result.data.ldamtactual|default(0)) }}
+            {% elif result.data.selectedscenario == 'B2' %}
+              ₹{{ "%.2f"|format(result.data.ldamtcontractual|default(0)) }}
+            {% else %}
+              ₹0.00
+            {% endif %}
+          </h5>
+          <small>LD Amount</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selected scenario -->
+    <div class="col-md-3 mb-2">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <h5>{{ result.data.selectedscenario|default('N/A') }}</h5>
+          <small>Selected Scenario</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INPUT + DP SUMMARY -->
+  <div class="card mb-4">
+    <div class="card-header bg-secondary text-white">
+      <h6 class="mb-0">Inputs &amp; Dates</h6>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <!-- Commercial -->
+        <div class="col-md-6">
+          <table class="table table-sm">
+            <tr>
+              <th>Basic Rate</th>
+              <td>₹{{ "%.2f"|format(data.basicrate|default(0)) }}</td>
+            </tr>
+            <tr>
+              <th>Quantity</th>
+              <td>{{ data.quantity|default(0)|int }}</td>
+            </tr>
+            <tr>
+              <th>Freight / Unit</th>
+              <td>₹{{ "%.2f"|format(data.freight|default(0)) }}</td>
+            </tr>
+            <tr>
+              <th>Rate Applied</th>
+              <td>{{ data.rateapplied|default('N/A') }}</td>
+            </tr>
+          </table>
+        </div>
+        <!-- Dates -->
+        <div class="col-md-6">
+          <table class="table table-sm">
+            <tr>
+              <th>PVC Base Date</th>
+              <td>{{ data.pvcbasedate or '-' }}</td>
+            </tr>
+            <tr>
+              <th>Original DP</th>
+              <td>{{ data.origdp or '-' }}</td>
+            </tr>
+            <tr>
+              <th>Refixed DP</th>
+              <td>{{ data.refixeddp or '-' }}</td>
+            </tr>
+            <tr>
+              <th>Extended DP (w/o LD)</th>
+              <td>{{ data.extendeddp or '-' }}</td>
+            </tr>
+            <tr>
+              <th>Call / Inspection Date</th>
+              <td>{{ data.caldate or '-' }}</td>
+            </tr>
+            <tr>
+              <th>Supply Date</th>
+              <td>{{ data.supdate or '-' }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOWER RATE DETAILS -->
+  {% set lower_modes = [
+    'lower rate applicable',
+    'lower rate and ld comparison',
+    'lower rate with ld in further extension'
+  ] %}
+  {% if data.rateapplied and data.rateapplied|lower in lower_modes %}
+  <div class="card mb-4">
+    <div class="card-header bg-warning">
+      <h6 class="mb-0">Lower Rate Details</h6>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <table class="table table-sm">
+            <tr>
+              <th>Lower Basic Rate</th>
+              <td>₹{{ "%.2f"|format(data.lowerrate|default(0)) }}</td>
+            </tr>
+            <tr>
+              <th>Lower Freight / Unit</th>
+              <td>₹{{ "%.2f"|format(data.lowerfreight|default(0)) }}</td>
+            </tr>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <table class="table table-sm">
+            <tr>
+              <th>Lower Base Date</th>
+              <td>{{ data.lowerbasicdate or '-' }}</td>
+            </tr>
+            <tr>
+              <th>Applied Mode</th>
+              <td>{{ data.rateapplied }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- LD DETAILS -->
+  {% if result.data.ld_applicable %}
+  <div class="card mb-4">
+    <div class="card-header bg-danger text-white">
+      <h6 class="mb-0">LD Details</h6>
+    </div>
+    <div class="card-body">
+      <table class="table table-sm table-bordered text-center align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Delay Days</th>
+            <th>Delay Weeks (Ceiling)</th>
+            <th>LD Rate (%)</th>
+            <th>LD on Actual (₹)</th>
+            <th>LD on Contractual (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ result.data.delay_days if result.data.delay_days is not none else 0 }}</td>
+            <td>{{ result.data.ld_weeks if result.data.ld_weeks is not none else 0 }}</td>
+            <td>{{ "%.2f"|format(result.data.ld_rate_pct|default(0)) }}</td>
+            <td>₹{{ "%.2f"|format(result.data.ldamtactual|default(0)) }}</td>
+            <td>₹{{ "%.2f"|format(result.data.ldamtcontractual|default(0)) }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <small class="text-muted">
+        Weeks = ceil(days / 7), rate = min(weeks × 0.5%, 10%).
+      </small>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- SCENARIO AMOUNTS TABLE -->
+  {% if result.scenario_amounts %}
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h6 class="mb-0">Scenario-wise PVC (After LD where applicable)</h6>
+    </div>
+
+    <div class="card-body table-responsive">
+      <table class="table table-bordered table-sm text-center align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Scenario</th>
+            <th>Description</th>
+            <th>PVC Amount (₹)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+
+        {% if data.rateapplied and data.rateapplied|lower == 'supply before due date' %}
+
+          <tr>
+            <td><strong>A2</strong></td>
+            <td>Actual PVC</td>
+            <td>₹{{ "%.2f"|format(result.data.pvcactual|default(0)) }}</td>
+            <td>
+              {% if result.data.selectedscenario == 'A2' %}
+                <span class="badge bg-success">SELECTED</span>
+              {% else %}
+                <span class="badge bg-secondary">Not selected</span>
+              {% endif %}
+            </td>
+          </tr>
+
+        {% elif data.rateapplied and data.rateapplied|lower == 'supply after due date' %}
+
+          <tr>
+            <td><strong>A2</strong></td>
+            <td>Actual PVC</td>
+            <td>₹{{ "%.2f"|format(result.data.pvcactual|default(0)) }}</td>
+            <td>
+              {% if result.data.selectedscenario == 'A2' %}
+                <span class="badge bg-success">SELECTED</span>
+              {% else %}
+                <span class="badge bg-secondary">Not selected</span>
+              {% endif %}
+            </td>
+          </tr>
+
+          <tr>
+            <td><strong>B2</strong></td>
+            <td>Contractual PVC</td>
+            <td>₹{{ "%.2f"|format(result.data.pvccontractual|default(0)) }}</td>
+            <td>
+              {% if result.data.selectedscenario == 'B2' %}
+                <span class="badge bg-success">SELECTED</span>
+              {% else %}
+                <span class="badge bg-secondary">Not selected</span>
+              {% endif %}
+            </td>
+          </tr>
+
+        {% elif data.rateapplied and data.rateapplied|lower == 'lower rate applicable' %}
+
+          {% for sc in ['A2','B2','C1','D1'] %}
+            {% if sc == 'A2' %}
+              {% set desc = 'Actual PVC' %}
+              {% set val = result.data.pvcactual|default(0) %}
+            {% elif sc == 'B2' %}
+              {% set desc = 'Contractual PVC' %}
+              {% set val = result.data.pvccontractual|default(0) %}
+            {% elif sc == 'C1' %}
+              {% set desc = 'Lower Actual PVC' %}
+              {% set val = result.data.lower_actual|default(0) %}
+            {% elif sc == 'D1' %}
+              {% set desc = 'Lower Contractual PVC' %}
+              {% set val = result.data.lower_contractual|default(0) %}
+            {% endif %}
+            <tr>
+              <td><strong>{{ sc }}</strong></td>
+              <td>{{ desc }}</td>
+              <td>₹{{ "%.2f"|format(val|default(0)) }}</td>
+              <td>
+                {% if result.data.selectedscenario == sc %}
+                  <span class="badge bg-success">SELECTED</span>
+                {% else %}
+                  <span class="badge bg-secondary">Not selected</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+
+        {% elif data.rateapplied and data.rateapplied|lower == 'lower rate with ld in further extension' %}
+
+          {% for sc in ['A2','B2','C1','D1'] %}
+            {% if sc == 'A2' %}
+              {% set desc = 'Actual PVC - LD' %}
+              {% set val = result.data.pvc_actual_less_ld_new|default(0) %}
+            {% elif sc == 'B2' %}
+              {% set desc = 'Contractual PVC - LD' %}
+              {% set val = result.data.pvc_contractual_less_ld_new|default(0) %}
+            {% elif sc == 'C1' %}
+              {% set desc = 'Lower Actual PVC - LD' %}
+              {% set val = result.data.lower_actual_less_ld|default(0) %}
+            {% elif sc == 'D1' %}
+              {% set desc = 'Lower Contractual PVC - LD' %}
+              {% set val = result.data.lower_contractual_less_ld|default(0) %}
+            {% endif %}
+            <tr>
+              <td><strong>{{ sc }}</strong></td>
+              <td>{{ desc }}</td>
+              <td>₹{{ "%.2f"|format(val|default(0)) }}</td>
+              <td>
+                {% if result.data.selectedscenario == sc %}
+                  <span class="badge bg-success">SELECTED</span>
+                {% else %}
+                  <span class="badge bg-secondary">Not selected</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+
+        {% else %}
+
+          {% for sc in ['A2','B2','C1','D1'] %}
+            {% if sc == 'A2' %}
+              {% set desc = 'Actual PVC - LD' %}
+              {% set val = result.data.pvc_actual_less_ld_new|default(0) %}
+            {% elif sc == 'B2' %}
+              {% set desc = 'Contractual PVC - LD' %}
+              {% set val = result.data.pvc_contractual_less_ld_new|default(0) %}
+            {% elif sc == 'C1' %}
+              {% set desc = 'Lower Actual PVC' %}
+              {% set val = result.data.lower_actual|default(0) %}
+            {% elif sc == 'D1' %}
+              {% set desc = 'Lower Contractual PVC' %}
+              {% set val = result.data.lower_contractual|default(0) %}
+            {% endif %}
+            <tr>
+              <td><strong>{{ sc }}</strong></td>
+              <td>{{ desc }}</td>
+              <td>₹{{ "%.2f"|format(val|default(0)) }}</td>
+              <td>
+                {% if result.data.selectedscenario == sc %}
+                  <span class="badge bg-success">SELECTED</span>
+                {% else %}
+                  <span class="badge bg-secondary">Not selected</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+
+        {% endif %}
+
+        </tbody>
+      </table>
+      <small class="text-muted">
+        A2: Actual PVC | B2: Contractual PVC | C1 / D1: PVC with lower basic rate.
+      </small>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- INDEX DETAILS PER SCENARIO -->
+  {% if result.scenario_details %}
+  <div class="card mb-4">
+    <div class="card-header bg-success text-white">
+      <h6 class="mb-0">Index-wise PVC Details</h6>
+    </div>
+    <div class="card-body">
+
+      {% if data.rateapplied and data.rateapplied|lower == 'supply before due date' %}
+        {% set show_scenarios = ['A2'] %}
+      {% elif data.rateapplied and data.rateapplied|lower == 'supply after due date' %}
+        {% set show_scenarios = ['A2', 'B2'] %}
+      {% else %}
+        {% set show_scenarios = ['A2', 'B2', 'C1', 'D1'] %}
+      {% endif %}
+
+      {% for detail in result.scenario_details if detail.scenario in show_scenarios %}
+      <div class="mb-4 p-3 border rounded">
+        <h6 class="mb-2">
+          <strong>Scenario {{ detail.scenario }}</strong> |
+          Base: {{ detail.base_month.date() if detail.base_month else 'N/A' }} |
+          Current: {{ detail.current_month.date() if detail.current_month else 'N/A' }} |
+          PVC %: {{ "%.4f"|format(detail.pvc_percent|default(0)) }}%
+          {% if detail.scenario == 'A2' %}
+            | Amount (Actual PVC): ₹{{ "%.2f"|format(result.data.pvcactual|default(0)) }}
+          {% elif detail.scenario == 'B2' %}
+            | Amount (Contractual PVC): ₹{{ "%.2f"|format(result.data.pvccontractual|default(0)) }}
+          {% elif detail.scenario == 'C1' %}
+            | Amount (Lower Actual): ₹{{ "%.2f"|format(result.data.lower_actual|default(0)) }}
+          {% elif detail.scenario == 'D1' %}
+            | Amount (Lower Contractual): ₹{{ "%.2f"|format(result.data.lower_contractual|default(0)) }}
+          {% endif %}
+        </h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered">
+            <thead class="table-success">
+              <tr>
+                <th>Index</th>
+                <th>Base</th>
+                <th>Current</th>
+                <th>Weight (%)</th>
+                <th>Contribution (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {# Choose index list based on item formula #}
+              {% if item_obj and item_obj.pvc_formula_code == 'TM_IEEMA_RM' %}
+                {% set index_list = ['C', 'S', 'IS', 'PV', 'W'] %}
+              {% else %}
+                {% set index_list = ['copper','crgo','ms','insmat','transoil','wpi'] %}
+              {% endif %}
+
+              {% for idx in index_list %}
+                {% set key_base = idx ~ '_base' %}
+                {% set key_cur  = idx ~ '_current' %}
+                {% set key_w    = idx ~ '_weight' %}
+                {% set key_con  = idx ~ '_contribution_pct' %}
+                <tr>
+                  <td><strong>{{ idx|upper }}</strong></td>
+
+                  <td>
+                    {% if key_base in detail %}
+                      {% set b = detail[key_base] %}
+                      {% if b is not none %}{{ "%.2f"|format(b) }}{% else %}-{% endif %}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+
+                  <td>
+                    {% if key_cur in detail %}
+                      {% set c = detail[key_cur] %}
+                      {% if c is not none %}{{ "%.2f"|format(c) }}{% else %}-{% endif %}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+
+                  <td>
+                    {% if key_w in detail %}
+                      {% set w = detail[key_w] %}
+                      {% if w is not none %}{{ w }}{% else %}-{% endif %}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+
+                  <td class="fw-bold">
+                    {% if key_con in detail %}
+                      {% set contrib = detail[key_con] %}
+                      {% if contrib is not none %}{{ "%.4f"|format(contrib) }}{% else %}-{% endif %}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+
+              <tr class="table-warning fw-bold">
+                <td colspan="4" class="text-end">Total PVC %</td>
+                <td>{{ "%.4f"|format(detail.pvc_percent|default(0)) }}%</td>
+              </tr>
+              <tr>
+                <td colspan="4" class="text-end fw-bold">PVC per set (₹)</td>
+                <td class="fw-bold">
+                  {% if detail.scenario == 'A2' %}
+                    {{ "%.2f"|format(result.data.pvc_per_set_a2|default(0)) }}
+                  {% elif detail.scenario == 'B2' %}
+                    {{ "%.2f"|format(result.data.pvc_per_set_b2|default(0)) }}
+                  {% elif detail.scenario == 'C1' %}
+                    {{ "%.2f"|format(result.data.pvc_per_set_c1|default(0)) }}
+                  {% elif detail.scenario == 'D1' %}
+                    {{ "%.2f"|format(result.data.pvc_per_set_d1|default(0)) }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endfor %}
+
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ACTION BUTTONS -->
+  <div class="text-center mb-3 no-print">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary me-2">
+      New Calculation
+    </a>
+    <a href="{{ url_for('history') }}" class="btn btn-outline-secondary me-2">
+      History
+    </a>
+    <button onclick="window.print()" class="btn btn-primary me-2">
+      Print / PDF
+    </button>
+    {% if calc_id %}
+    <a href="{{ url_for('export_calc_excel', calc_id=calc_id) }}"
+       class="btn btn-success">
+      Download Excel
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- FOOTNOTE -->
+  <div class="section" style="margin-top: 10px; font-size: 11px;">
+    <table width="100%">
+      <tr>
+        <td style="background-color:#fff3cd; border:1px solid #ffeeba; padding:4px; font-weight:bold;">
+          Note: This application should be used for cross verification only.
+        </td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+{% endblock %}  this is my result.html modified it

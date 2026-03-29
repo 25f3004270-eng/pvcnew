@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Items & Formulas{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h4>Items & PVC Formulas</h4>
+    <a href="{{ url_for('admin_items_new') }}" class="btn btn-sm btn-success">
+      Add Item
+    </a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Code</th>
+          <th>Formula Code</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ it.id }}</td>
+          <td>{{ it.name }}</td>
+          <td>{{ it.code or '-' }}</td>
+          <td>{{ it.pvc_formula_code }}</td>
+          <td>
+            <a href="{{ url_for('admin_items_edit', item_id=it.id) }}"
+               class="btn btn-sm btn-primary me-1">Edit</a>
+            <a href="{{ url_for('admin_item_indices_list', item_id=it.id) }}"
+               class="btn btn-sm btn-secondary">Indices</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

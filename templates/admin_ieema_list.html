@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}IEEMA Indices{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h4>IEEMA Monthly Indices</h4>
+    <a href="{{ url_for('admin_ieema_new') }}" class="btn btn-sm btn-success">
+      Add Month
+    </a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Month</th>
+          <th>Copper</th>
+          <th>CRGO</th>
+          <th>MS</th>
+          <th>InsMat</th>
+          <th>TransOil</th>
+          <th>WPI</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ r.month.strftime('%Y-%m') }}</td>
+          <td>{{ r.copper }}</td>
+          <td>{{ r.crgo }}</td>
+          <td>{{ r.ms }}</td>
+          <td>{{ r.insmat }}</td>
+          <td>{{ r.transoil }}</td>
+          <td>{{ r.wpi }}</td>
+          <td>
+            <a href="{{ url_for('admin_ieema_edit', row_id=r.id) }}"
+               class="btn btn-sm btn-primary">
+              Edit
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

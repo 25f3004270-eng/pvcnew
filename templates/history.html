@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}History - PVC{% endblock %}
+
+{% block content %}
+<div class="mt-3">
+  <h4>Your PVC Calculations</h4>
+  <hr>
+  {% if records %}
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>Date</th>
+          <th>Item</th>
+          <th>Basic Rate</th>
+          <th>Qty</th>
+          <th>Final Payable</th>
+          <th>Scenario</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td>{{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ r.item.name if r.item else '' }}</td>
+          <td>₹{{ "%.2f"|format(r.basicrate|default(0)) }}</td>
+          <td>{{ r.quantity|default(0)|int }}</td>
+          <td>₹{{ "%.2f"|format(r.fairprice|default(0)) }}</td>
+          <td>{{ r.selectedscenario or '-' }}</td>
+          <td>
+            <a href="{{ url_for('view_calc', calc_id=r.id) }}"
+               class="btn btn-sm btn-primary">
+              View
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p>No calculations yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
