@@ -49,6 +49,19 @@ app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 db = SQLAlchemy(app)
 with app.app_context():
     db.create_all()
+
+    # Create admin if not exists
+    if not User.query.filter_by(username='admin').first():
+        from werkzeug.security import generate_password_hash
+
+        admin = User(
+            username='admin',
+            password_hash=generate_password_hash('admin123'),
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print("Admin user created")
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
