@@ -38,13 +38,13 @@ app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "fallback-secret-key")
 # Database configuration (Render PostgreSQL)
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# Fix Render postgres URL issue
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is not set!")
+
+if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
