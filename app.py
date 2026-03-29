@@ -74,7 +74,21 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(120), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+with app.app_context():
+    db.create_all()
 
+    # Create admin if not exists
+    if not User.query.filter_by(username='admin').first():
+        from werkzeug.security import generate_password_hash
+
+        admin = User(
+            username='admin',
+            password_hash=generate_password_hash('admin123'),
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print("Admin user created")
 
 class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -85,7 +99,21 @@ class Item(db.Model):
     pvc_formula_code = db.Column(db.String(50), nullable=False)
     weights_json = db.Column(db.Text)          # JSON of index weights
     extra_fields_json = db.Column(db.Text)     # JSON for dynamic extra inputs
+with app.app_context():
+    db.create_all()
 
+    # Create admin if not exists
+    if not User.query.filter_by(username='admin').first():
+        from werkzeug.security import generate_password_hash
+
+        admin = User(
+            username='admin',
+            password_hash=generate_password_hash('admin123'),
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print("Admin user created")
 
 class ItemIndex(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -101,7 +129,21 @@ class ItemIndex(db.Model):
     # example: {"copper": 865.2, "crgo": 710.0, "ms": 130.5}
     # or {"C": 345, "S": 290, "IS": 150, "PV": 210, "W": 180}
     indices_json = db.Column(db.Text, nullable=False)
+with app.app_context():
+    db.create_all()
 
+    # Create admin if not exists
+    if not User.query.filter_by(username='admin').first():
+        from werkzeug.security import generate_password_hash
+
+        admin = User(
+            username='admin',
+            password_hash=generate_password_hash('admin123'),
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print("Admin user created")
 
 class PVCResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -133,7 +175,21 @@ class PVCResult(db.Model):
     ldamtcontractual = db.Column(db.Float)
     fairprice = db.Column(db.Float)
     selectedscenario = db.Column(db.String(10))
+with app.app_context():
+    db.create_all()
 
+    # Create admin if not exists
+    if not User.query.filter_by(username='admin').first():
+        from werkzeug.security import generate_password_hash
+
+        admin = User(
+            username='admin',
+            password_hash=generate_password_hash('admin123'),
+            is_admin=True
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print("Admin user created")
 
 # =========================================================
 # LOGIN + ADMIN HELPER
