@@ -1041,8 +1041,5 @@ def init_db():
         print("Seeded default item: Main Transformer 6531 KVA")
 
 
-if __name__ == '__main__':
-    os.makedirs('templates', exist_ok=True)
-    
-    init_db()
-    serve(app, host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+if __name__ == "__main__":
+    app.run()
