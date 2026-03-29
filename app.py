@@ -47,6 +47,8 @@ if DATABASE_URL.startswith("postgres://"):
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 
 db = SQLAlchemy(app)
+with app.app_context():
+    db.create_all()
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
@@ -972,7 +974,6 @@ def init_db():
 
 if __name__ == '__main__':
     os.makedirs('templates', exist_ok=True)
-    with app.app_context():
-        db.create_all()
+    
         init_db()
     serve(app, host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
