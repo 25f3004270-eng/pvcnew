@@ -21,25 +21,34 @@ from io import BytesIO
 from waitress import serve
 from functools import wraps
 
+
 # =========================================================
 # CONFIG
 # =========================================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, 'pvc.db')
-
 GST_FACTOR = 1.18
 
 # =========================================================
 # FLASK APP
 # =========================================================
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'pvc-webapp-2026'  # change in production
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
+
+# Secret key from environment (safe for production)
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "fallback-secret-key")
+
+# Database configuration (Render PostgreSQL)
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+# Fix Render postgres URL issue
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'login'in'
 
 
 # =========================================================
@@ -965,4 +974,4 @@ if __name__ == '__main__':
     os.makedirs('templates', exist_ok=True)
     with app.app_context():
         init_db()
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    serve(app, host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
