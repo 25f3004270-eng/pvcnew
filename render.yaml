@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: pvcclw
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 4 -b 0.0.0.0:$PORT app:app
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SQLALCHEMY_TRACK_MODIFICATIONS
+        value: false
+
+databases:
+  - name: pvc_db
+    engine: postgresql
+    plan: starter
